@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -76,7 +78,7 @@ type ServicesResponse struct {
 // Entity
 
 type serviceReportEntity struct {
-	ID                   string
+	ID                   string `bson:"_id"`
 	Name                 string
 	Description          string
 	SecurityLevel        string
@@ -85,7 +87,8 @@ type serviceReportEntity struct {
 	QualityLevel         string
 	AppArchitectureLevel string
 	UnitTestScore        string
-	overallLevel         string
+	IntegrationTestScore string
+	OverallLevel         string
 	LastUpdated          time.Time
 }
 
@@ -97,12 +100,34 @@ type changeLogEntity struct {
 	ChangeQuality         string
 	ChangeAppArchitecture string
 	ChangeUnitTest        string
+	ChangeIntegrationTest string
 	LastUpdated           time.Time
 }
 
 func convertDtoToEntity(serviceID string, serviceName string, serviceDescription string, mrReport maturityReport) serviceReportEntity {
 	serviceReport := serviceReportEntity{ID: serviceID, Name: serviceName, Description: serviceDescription,
-		UnitTestScore: mrReport.LatestCheckResults[0].Message, overallLevel: mrReport.OverallLevel.Name}
+		OverallLevel: mrReport.OverallLevel.Name}
+
+	// Evaluate Unit Test Coverage
+	serviceReport.UnitTestScore = "99"
+	if mrReport.LatestCheckResults[0].Status == "failed" {
+		message := mrReport.LatestCheckResults[0].Message
+		regexNumber, _ := regexp.Compile("([0-9.]+)")
+
+		if regexNumber.MatchString(message) {
+			serviceReport.UnitTestScore = regexNumber.FindString(message)
+		}
+	}
+	// Evaluate Integration Test Coverage
+	serviceReport.IntegrationTestScore = "99"
+	if mrReport.LatestCheckResults[0].Status == "failed" {
+		message := mrReport.LatestCheckResults[0].Message
+		regexNumber, _ := regexp.Compile("([0-9.]+)")
+
+		if regexNumber.MatchString(message) {
+			serviceReport.IntegrationTestScore = regexNumber.FindString(message)
+		}
+	}
 
 	for _, categoryBreakdown1 := range mrReport.CategoryBreakdown {
 		if categoryBreakdown1.Category.Name == "Security" {
@@ -124,6 +149,31 @@ func convertDtoToEntity(serviceID string, serviceName string, serviceDescription
 	serviceReport.LastUpdated = time.Now()
 
 	return serviceReport
+}
+
+func captureChangeLog(serviceID string, newReportEntity serviceReportEntity, oldReportEntity serviceReportEntity) (changeLogEntity, bool) {
+
+	var isChange bool = false
+
+	formatChange := func(old string, new string) string {
+		if new != old {
+			isChange = true
+			return (old + "->" + new)
+		}
+		return ""
+	}
+
+	changeLogEntity1 := changeLogEntity{ID: serviceID,
+		ChangeSecurity:        formatChange(oldReportEntity.SecurityLevel, newReportEntity.SecurityLevel),
+		ChangeResiliency:      formatChange(oldReportEntity.ResiliencyLevel, newReportEntity.ResiliencyLevel),
+		ChangeInfrastructure:  formatChange(oldReportEntity.InfrastructureLevel, newReportEntity.InfrastructureLevel),
+		ChangeQuality:         formatChange(oldReportEntity.QualityLevel, newReportEntity.QualityLevel),
+		ChangeAppArchitecture: formatChange(oldReportEntity.AppArchitectureLevel, newReportEntity.AppArchitectureLevel),
+		ChangeUnitTest:        formatChange(oldReportEntity.UnitTestScore, newReportEntity.UnitTestScore),
+		ChangeIntegrationTest: formatChange(oldReportEntity.IntegrationTestScore, newReportEntity.IntegrationTestScore),
+		LastUpdated:           time.Now()}
+
+	return changeLogEntity1, isChange
 }
 
 func setupDBConfig() (mongo.Client, context.Context) {
@@ -199,10 +249,10 @@ func main() {
 	// fetch maturity report for each service.
 
 	for _, node := range servicesResponse.Data.Account.Services.Nodes {
-		if node.ID == "Z2lkOi8vb3BzbGV2ZWwvU2VydmljZS8xNjIw" {
+		//if node.ID == "Z2lkOi8vb3BzbGV2ZWwvU2VydmljZS8xNjIw" {
 
-			jsonMR := map[string]string{
-				"query": `
+		jsonMR := map[string]string{
+			"query": `
 				{
 					account {
 						  service(id: "` + node.ID + `") {
@@ -223,7 +273,7 @@ func main() {
 									alias
 									}
 								}
-								latestCheckResults(ids : "Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5MDY") {
+								latestCheckResults(ids : ["Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5MDk","Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5OTA"]) {
 									message
 									status
 								}
@@ -238,49 +288,92 @@ func main() {
 					}
 				}
 			`}
-			bytesMRRequest, _ := json.Marshal(jsonMR)
-			//fmt.Println("json Mr is", jsonMR)
+		bytesMRRequest, _ := json.Marshal(jsonMR)
+		//fmt.Println("json Mr is", jsonMR)
 
-			requestMaturityReport, errMR := http.NewRequest("POST", "https://api.opslevel.com/graphql", bytes.NewBuffer(bytesMRRequest))
-			if errMR != nil {
-				panic(errMR)
-			}
-			client := &http.Client{Timeout: time.Second * 10}
-			requestMaturityReport.Header.Add("Content-Type", "application/json")
-			requestMaturityReport.Header.Add("Authorization", "Bearer "+token)
-			requestMaturityReport.Header.Add("Accept", "application/json")
+		requestMaturityReport, errMR := http.NewRequest("POST", "https://api.opslevel.com/graphql", bytes.NewBuffer(bytesMRRequest))
+		if errMR != nil {
+			panic(errMR)
+		}
+		client := &http.Client{Timeout: time.Second * 10}
+		requestMaturityReport.Header.Add("Content-Type", "application/json")
+		requestMaturityReport.Header.Add("Authorization", "Bearer "+token)
+		requestMaturityReport.Header.Add("Accept", "application/json")
 
-			response, err := client.Do(requestMaturityReport)
-			if err != nil {
-				panic(err)
-			}
+		response, err := client.Do(requestMaturityReport)
+		if err != nil {
+			panic(err)
+		}
 
-			defer response.Body.Close() // makes sure that response body is closed.
-			data, err := ioutil.ReadAll(response.Body)
-			if err != nil {
-				panic(err)
-			}
-			//fmt.Println(string(data))
+		defer response.Body.Close() // makes sure that response body is closed.
+		data, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			panic(err)
+		}
+		//fmt.Println(string(data))
 
-			var mrResponse ServicesResponse
-			//var test interface{}
-			json.Unmarshal(data, &mrResponse)
-			fmt.Println("response received for fetching Maturity Report")
-			fmt.Println(mrResponse)
+		var mrResponse ServicesResponse
+		//var test interface{}
+		json.Unmarshal(data, &mrResponse)
+		fmt.Println("response received for fetching Maturity Report")
+		fmt.Println(mrResponse)
 
-			//save information to database.
-			serviceReport := convertDtoToEntity(node.ID, node.Name, node.Description, mrResponse.Data.Account.Service.MaturityReport)
-			collection := dbClient.Database("opslevel").Collection("services_report")
-			res, err := collection.InsertOne(context.Background(), serviceReport)
+		// change_log
+		// read information from service_report, compare with current response, generate change_log, persist in the two collections
+		//save information to database.
+		currentServiceReport := convertDtoToEntity(node.ID, node.Name, node.Description, mrResponse.Data.Account.Service.MaturityReport)
+		serviceResportCollection := dbClient.Database("opslevel").Collection("services_report")
+		changeLogCollection := dbClient.Database("opslevel").Collection("change_log")
+		filter := bson.D{{"_id", node.ID}}
 
-			if err != nil {
-				panic(err)
-			}
-			defer dbClient.Disconnect(ctx)
+		var oldServiceReport serviceReportEntity
 
+		err1 := serviceResportCollection.FindOne(context.Background(), filter).Decode(&oldServiceReport)
+		if err1 != nil {
+			//doesn't exist already
+			fmt.Println("it doesn't exist, so insert new row.")
+			fmt.Println(err1)
+
+			res, err := serviceResportCollection.InsertOne(context.Background(), currentServiceReport)
 			fmt.Println(res)
 
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			// exist already.
+			fmt.Println("it exists, so update the row.")
+
+			res, err := serviceResportCollection.ReplaceOne(context.Background(), filter, currentServiceReport)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(res)
+
+			changeLog, isChanged := captureChangeLog(node.ID, currentServiceReport, oldServiceReport)
+			fmt.Println("isChanged**")
+			fmt.Println(isChanged)
+			fmt.Println(changeLog)
+
+			if isChanged {
+				// save to database, and update confluence document
+				res, err := changeLogCollection.InsertOne(context.Background(), changeLog)
+				fmt.Println(res)
+
+				if err != nil {
+					panic(err)
+				}
+
+			}
+
 		}
+
+		fmt.Println("oldServiceReport is***")
+		fmt.Println(oldServiceReport)
+
+		defer dbClient.Disconnect(ctx)
+
+		//}
 	}
 }
 
