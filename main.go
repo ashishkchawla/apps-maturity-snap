@@ -307,8 +307,8 @@ func setupDBConfig() (mongo.Client, context.Context) {
 func main() {
 	fmt.Println("welcome to go")
 
-	if len(os.Args) <= 5 {
-		fmt.Println("Please pass following arguments: <opslevel_owner_alias> <parentPage_id> <title> <sprint_name> <team_name>")
+	if len(os.Args) <= 7 {
+		fmt.Println("Please pass following arguments: <opslevel_owner_alias> <parentPage_id> <title> <sprint_name> <team_name> <opslevel_token> <confluence_token>")
 		os.Exit(1)
 		// do something with command
 	}
@@ -330,9 +330,9 @@ func main() {
 		}
 	`}
 
-	opsLevelToken := "X6YVXLwIRjceklWoQOrXD5RHa2VmDrJKMnnf"
+	opsLevelToken := os.Args[6]
 
-	confluenceToken := "ATATT3xFfGF0KLpcwfCD_tAc5I8bodmC6AQaDiwgRfCxNguzYRxCfXqX-UjbQpZ9lmwFJ17GGOfWojy6r5c_GZedaiGgZkfvpllV-oj1Ypxq_tfyA3G39GEQpz6LugfePxhn9EOzTwH0WMRcMSxwJbUQi8KhMAJPIqv0FdVBTVWwo1Rp1DA3IBw=909708D4"
+	confluenceToken := os.Args[7]
 
 	//call get Services endpoint
 	jsonValue, _ := json.Marshal(serviceRequestBody)
