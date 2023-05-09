@@ -33,6 +33,7 @@
 ## Executing the utility
 ### First time setup only
 1. Create API tokens in Opslevel and Confluent.
+1. Install Go lang- https://go.dev/doc/install
 1. Setup Mongodb
     * docker-compose up -d
     * docker ps -a
