@@ -13,11 +13,8 @@
 
 ## opslevel graphql- https://app.opslevel.com/graphiql
 
-* Create a token for reading amm metrices
+* Create a token for reading amm metrices - https://app.opslevel.com/api_tokens
 
-
-## checks
-* integration test coverage- Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5MDk, Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5OTA
 
 ## How the utility works
 
@@ -268,6 +265,7 @@ ATATT3xFfGF0bDR-JRgSar1CtOeivhMQYFY1mOHTVGUMvFlUs5ApydPbCU1XhDOGqAQovln2CyvtQ9BU
   }
 }
 ```
+* integration test coverage- Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5MDk, Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5OTA
 
 
 
