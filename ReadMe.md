@@ -8,7 +8,58 @@
 * Create a template
 
 * Create API token - https://id.atlassian.com/manage-profile/security/api-tokens
-* token  - ATATT3xFfGF0KLpcwfCD_tAc5I8bodmC6AQaDiwgRfCxNguzYRxCfXqX-UjbQpZ9lmwFJ17GGOfWojy6r5c_GZedaiGgZkfvpllV-oj1Ypxq_tfyA3G39GEQpz6LugfePxhn9EOzTwH0WMRcMSxwJbUQi8KhMAJPIqv0FdVBTVWwo1Rp1DA3IBw=909708D4
+
+
+
+## opslevel graphql- https://app.opslevel.com/graphiql
+
+* Create a token for reading amm metrices
+
+
+## checks
+* integration test coverage- Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5MDk, Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5OTA
+
+## How the utility works
+
+### Logic:
+1. Fetch list of services.
+1. For each service, fetch maturity report. 
+1. Store maturity report results in table- services_report, and update change_log table with any deltas.
+1. Update confluence page with the services report as well as change, with following fields:
+	* Service name
+	* Levels for 5 different areas- Security, Resiliency, Infrasturcture, Quality, Application Architecture.
+	* Unit test coverage and integration test coverage - possible?
+	* changes since last run.
+
+  
+
+## Executing the utility
+### First time setup only
+1. Create API tokens in Opslevel and Confluent.
+1. Setup Mongodb
+    * docker-compose up -d
+    * docker ps -a
+    * docker exec -it 436fe4428393 bash
+
+1. Create database and table 
+    * docker exec -it db bash
+    * mongosh
+    * use opslevel // create database
+    * db.createCollection("services_report") // create collection
+    * db.createCollection("change_log")
+    * // insert documents
+
+1. run go program
+```
+    go run main.go <opslevel_owner_alias> <parentPage_id> <title> <sprint_name> <team_name> <opslevel_token> <confluence_token>
+```
+
+ATATT3xFfGF0bDR-JRgSar1CtOeivhMQYFY1mOHTVGUMvFlUs5ApydPbCU1XhDOGqAQovln2CyvtQ9BU3u6mnwmp-eIVLBKke5Um8QAosh29oJCGJuN7oSMcqU11RKf7DQyBW12a37YlXpoIuQaTcQy5pr0OI7Jw3Zz2sz1o3PE-7w1FOwNMaPA=89FBFF63
+
+## References
+* https://github.com/mongodb/mongo-go-driver
+* https://www.mongodb.com/docs/drivers/go/current/quick-start/#std-label-golang-quickstart
+* Get list of templates: https://chegg.atlassian.net/wiki/rest/api/template/page
 * Use basic auth with token as password 
 * Fetch list of tempates - https://chegg.atlassian.net/wiki/rest/api/template/page?spaceKey=EPE=
 * Fetch template detail- https://chegg.atlassian.net/wiki/rest/api/template/2961262126
@@ -58,12 +109,6 @@
     }
 }
 ```
-
-
-
-## opslevel graphql- https://app.opslevel.com/graphiql
-
-* token for reading amm metrices- X6YVXLwIRjceklWoQOrXD5RHa2VmDrJKMnnf
 * get list of services for a given team:
 ```
 {
@@ -223,50 +268,6 @@
   }
 }
 ```
-
-## checks
-* integration test coverage- Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5MDk, Z2lkOi8vb3BzbGV2ZWwvQ2hlY2tzOjpQYXlsb2FkLzE5OTA
-
-## Code
-
-### Logic:
-1. Fetch list of services.
-1. For each service, fetch maturity report. 
-1. Store maturity report results in table- services_report, and update change_log table with any deltas.
-1. Update confluence page with the services report as well as change, with following fields:
-	* Service name
-	* Levels for 5 different areas- Security, Resiliency, Infrasturcture, Quality, Application Architecture.
-	* Unit test coverage and integration test coverage - possible?
-	* changes since last run.
-
-  
-
-## Execute the program
-### First time setup only
-1. Setup Mongodb
-    * docker-compose up -d
-    * docker ps -a
-    * docker exec -it 436fe4428393 bash
-
-1. Create database and table 
-    * docker exec -it db bash
-    * mongosh
-    * use opslevel // create database
-    * db.createCollection("services_report") // create collection
-    * db.createCollection("change_log")
-    * // insert documents
-
-1. run go program
-```
-    go run main.go <opslevel_owner_alias> <parentPage_id> <title> <sprint_name> <team_name> <opslevel_token> <confluence_token>
-```
-
-
-
-## References
-* https://github.com/mongodb/mongo-go-driver
-* https://www.mongodb.com/docs/drivers/go/current/quick-start/#std-label-golang-quickstart
-* Get list of templates: https://chegg.atlassian.net/wiki/rest/api/template/page
 
 
 
