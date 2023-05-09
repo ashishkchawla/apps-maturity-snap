@@ -28,7 +28,7 @@
   
 
 ## Executing the utility
-### First time setup only
+### Optional - First time setup only
 1. Create API tokens in Opslevel and Confluent.
 1. Install Go lang- https://go.dev/doc/install
 1. go mod init github.com/ashishkchawla/automate-confluence
@@ -45,12 +45,12 @@
     * db.createCollection("change_log")
     * // insert documents
 
+### Run the utility
 1. run go program
 ```
     go run main.go <opslevel_owner_alias> <parentPage_id> <title> <sprint_name> <team_name> <opslevel_token> <confluence_token>
 ```
 
-ATATT3xFfGF0bDR-JRgSar1CtOeivhMQYFY1mOHTVGUMvFlUs5ApydPbCU1XhDOGqAQovln2CyvtQ9BU3u6mnwmp-eIVLBKke5Um8QAosh29oJCGJuN7oSMcqU11RKf7DQyBW12a37YlXpoIuQaTcQy5pr0OI7Jw3Zz2sz1o3PE-7w1FOwNMaPA=89FBFF63
 
 ## References
 * https://github.com/mongodb/mongo-go-driver
