@@ -1,8 +1,5 @@
 # Automate AMM capture
 
-## Steps
-* go mod init github.com/ashishkchawla/automate-confluence
-
 
 ## Steps for reading template from Confluence
 * Create a template
@@ -34,6 +31,7 @@
 ### First time setup only
 1. Create API tokens in Opslevel and Confluent.
 1. Install Go lang- https://go.dev/doc/install
+1. go mod init github.com/ashishkchawla/automate-confluence
 1. Setup Mongodb
     * docker-compose up -d
     * docker ps -a
